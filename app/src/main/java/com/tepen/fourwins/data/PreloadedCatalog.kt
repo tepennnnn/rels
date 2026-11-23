@@ -159,6 +159,8 @@ object PreloadedCatalog {
                     formCue = "Press lower back flat against the mat; extend opposite arm & leg slowly.",
                     kneeSafetyNote = "Unloaded supine movement — safe even during mild stiffness.",
                     motionType = ExerciseMotionType.DEAD_BUG,
+                    darebeeSlug = "dead-bug",
+                    targetMuscles = "Deep Core, Transverse Abs, Hip Flexors",
                     steps = listOf(
                         "Lie flat on your back with arms pointed straight to ceiling and knees bent 90° above hips.",
                         "Tilt pelvis slightly so your lower back presses flush into the mat (no gap under spine).",
@@ -183,6 +185,8 @@ object PreloadedCatalog {
                     kneeSwapName = "Incline Bench Plank",
                     kneeSwapCue = "Place forearms on the exercise bench to lighten lower-body load.",
                     motionType = ExerciseMotionType.PLANK,
+                    darebeeSlug = "elbow-plank-hold",
+                    targetMuscles = "Core, Shoulders, Glutes",
                     steps = listOf(
                         "Place forearms on mat (or bench) with elbows directly under shoulders.",
                         "Step feet back hip-width apart and form a straight line from ears through heels.",
@@ -310,6 +314,8 @@ object PreloadedCatalog {
                     formCue = "Stack shoulders over elbow, lift hips cleanly.",
                     kneeSafetyNote = "Bend bottom knee on pad if lateral knee pressure occurs.",
                     motionType = ExerciseMotionType.PLANK,
+                    darebeeSlug = "side-elbow-plank-hold",
+                    targetMuscles = "Obliques, Lateral Core, Shoulders",
                     steps = listOf(
                         "Lie on your side with forearm flat and elbow directly beneath shoulder.",
                         "Stack feet (or bend bottom knee 90° on a padded mat for extra knee comfort).",
@@ -506,6 +512,8 @@ object PreloadedCatalog {
                     formCue = "Push through heels, squeeze glutes at top for 2 sec. Add DB on hips once easy.",
                     kneeSafetyNote = "Builds hip & hamstring support with minimal patellofemoral stress.",
                     motionType = ExerciseMotionType.GLUTE_BRIDGE,
+                    darebeeSlug = "bridges",
+                    targetMuscles = "Glutes, Hamstrings, Lower Back",
                     steps = listOf(
                         "Lie on your back with knees bent and feet flat on floor positioned so shins are vertical at top.",
                         "Brace your core slightly (ribs down) so lower back doesn't hyperextend.",
@@ -527,6 +535,7 @@ object PreloadedCatalog {
                     formCue = "Soft 15° knee bend ONLY; push hips straight back until hamstring stretch, stand tall.",
                     kneeSafetyNote = "Hip hinge keeps shins nearly vertical — very gentle on knees.",
                     motionType = ExerciseMotionType.ROMANIAN_DEADLIFT,
+                    targetMuscles = "Hamstrings, Glutes, Erectors",
                     steps = listOf(
                         "Stand holding dumbbells in front of thighs with feet hip-width and a soft ~15° knee unlock.",
                         "Lock that slight knee angle in place and push your hips straight backward as if closing a car door.",
@@ -550,6 +559,7 @@ object PreloadedCatalog {
                     kneeSwapName = "Seated Straight-Leg Quad Raise",
                     kneeSwapCue = "Sit tall on bench, straighten leg & squeeze quad for 3 sec — zero joint compression!",
                     motionType = ExerciseMotionType.LEG_PRESS_SHALLOW,
+                    targetMuscles = "Quads (Controlled), Glutes",
                     steps = listOf(
                         "Place feet HIGH and shoulder-width on the leg press platform (high placement reduces knee bend).",
                         "Unlock safety handles with knees slightly soft — NEVER snap knees into a hard lockout.",
@@ -571,6 +581,8 @@ object PreloadedCatalog {
                     formCue = "Dumbbells resting above knees; full stretch and top pause.",
                     kneeSafetyNote = "Seated ankle movement — zero knee flexion strain.",
                     motionType = ExerciseMotionType.CALF_RAISE,
+                    darebeeSlug = "calf-raises",
+                    targetMuscles = "Calves (Soleus & Gastrocnemius)",
                     steps = listOf(
                         "Sit upright on bench with balls of feet on floor (or a thin plate) and dumbbells resting on lower thighs.",
                         "Push through big toes to raise heels as high as possible and pause 1 full second.",
@@ -843,6 +855,8 @@ object PreloadedCatalog {
                     formCue = "Keep lower back pressed down; slow controlled reps.",
                     kneeSafetyNote = "Unloaded supine core.",
                     motionType = ExerciseMotionType.DEAD_BUG,
+                    darebeeSlug = "flutter-kicks",
+                    targetMuscles = "Lower Abs, Hip Flexors",
                     steps = listOf(
                         "Lie flat on your back with hands lightly behind head or resting by hips.",
                         "Press lower back into the mat and elevate legs to ~45°.",
@@ -864,6 +878,8 @@ object PreloadedCatalog {
                     formCue = "Lift shoulder blades off floor, exhale on crunch.",
                     kneeSafetyNote = "Feet flat on floor at comfortable knee angle.",
                     motionType = ExerciseMotionType.CRUNCH_CORE,
+                    darebeeSlug = "crunches",
+                    targetMuscles = "Upper Abs, Core",
                     steps = listOf(
                         "Lie on back with knees comfortably bent, feet flat, arms crossed over chest.",
                         "Curl ribs toward hips until shoulder blades lift cleanly off the mat.",
@@ -885,6 +901,8 @@ object PreloadedCatalog {
                     formCue = "Keep ribs tucked and glutes engaged.",
                     kneeSafetyNote = "Switch to bench incline plank anytime.",
                     motionType = ExerciseMotionType.PLANK,
+                    darebeeSlug = "elbow-plank-hold",
+                    targetMuscles = "Full Core, Shoulders",
                     steps = listOf(
                         "Align elbows directly under shoulders on the mat.",
                         "Brace abs, squeeze glutes, and hold straight torso line for 30 seconds."
@@ -918,6 +936,8 @@ object PreloadedCatalog {
                     formCue = "Slow deliberate march, twist torso to meet raised knee comfortably.",
                     kneeSafetyNote = "No hopping; keep standing knee slightly soft.",
                     motionType = ExerciseMotionType.STANDING_CORE,
+                    darebeeSlug = "march-steps",
+                    targetMuscles = "Obliques, Core, Hip Flexors",
                     steps = listOf(
                         "Stand tall with feet shoulder-width apart and fingertips lightly behind ears.",
                         "Lift right knee comfortably to hip height (never force past comfort) while rotating left elbow across.",
@@ -939,6 +959,7 @@ object PreloadedCatalog {
                     formCue = "Brace abs tight while rotating smoothly.",
                     kneeSafetyNote = "Zero joint impact.",
                     motionType = ExerciseMotionType.STANDING_CORE,
+                    targetMuscles = "Obliques, Spine Mobility",
                     steps = listOf(
                         "Stand tall with knees unlocked and core braced.",
                         "Reach overhead, then rotate torso crisply left and right from the ribcage while keeping hips square."
@@ -959,6 +980,8 @@ object PreloadedCatalog {
                     formCue = "Fast crisp punches, rotate hips gently, keep shoulders active.",
                     kneeSafetyNote = "Fun cardio burst with zero jumping.",
                     motionType = ExerciseMotionType.SHADOW_BOXING,
+                    darebeeSlug = "punches",
+                    targetMuscles = "Shoulders, Core, Cardio Stamina",
                     steps = listOf(
                         "Take a comfortable staggered boxing stance with knees soft and fists guarding your chin.",
                         "Snap lead hand straight out (Jab), bring it straight back to chin.",

@@ -5,7 +5,6 @@ import android.view.WindowManager
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -18,7 +17,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.VolumeOff
@@ -60,14 +61,15 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.tepen.fourwins.MainViewModel
 import com.tepen.fourwins.model.KneeComfort
 import com.tepen.fourwins.model.WorkoutProgram
+import com.tepen.fourwins.ui.components.DarebeeGifBanner
 import com.tepen.fourwins.ui.components.ExerciseHowToDialog
 import com.tepen.fourwins.ui.components.KneeSafetyPill
-import com.tepen.fourwins.ui.components.TacticalCard
 import com.tepen.fourwins.ui.theme.TacticalColors
 import kotlinx.coroutines.delay
 
@@ -107,7 +109,7 @@ fun WorkoutPlayerScreen(
         mutableIntStateOf(totalSeconds)
     }
     var timerRunning by remember(exerciseIdx, currentSet, phase) {
-        mutableStateOf(phase == TimerPhase.REST) // auto-start rest timer; user starts timed work or taps Complete Set
+        mutableStateOf(phase == TimerPhase.REST)
     }
 
     var totalSetsLogged by remember { mutableIntStateOf(0) }
@@ -116,7 +118,6 @@ fun WorkoutPlayerScreen(
     var showHowTo by remember { mutableStateOf(false) }
     var selectedKneeComfort by remember { mutableStateOf(KneeComfort.GREAT) }
 
-    // Keep screen awake during active training
     DisposableEffect(Unit) {
         val window = (context as? Activity)?.window
         window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
@@ -167,7 +168,6 @@ fun WorkoutPlayerScreen(
         }
     }
 
-    // Tick loop
     LaunchedEffect(timerRunning, phase, exerciseIdx, currentSet) {
         while (timerRunning && remainingSeconds > 0 && phase != TimerPhase.DONE) {
             delay(1000L)
@@ -200,11 +200,14 @@ fun WorkoutPlayerScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(TacticalColors.AmoledBlack)
-            .padding(16.dp),
-        verticalArrangement = Arrangement.SpaceBetween
     ) {
-        // Top bar + audio/haptic toggles
-        Column {
+        // Top Header + Progress
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(TacticalColors.SurfaceDark)
+                .padding(horizontal = 12.dp, vertical = 10.dp)
+        ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -213,18 +216,24 @@ fun WorkoutPlayerScreen(
                 IconButton(onClick = onClose) {
                     Icon(Icons.AutoMirrored.Rounded.ArrowBack, "Exit", tint = TacticalColors.TextPrimary)
                 }
-                Text(
-                    text = "EX ${exerciseIdx + 1}/${program.exercises.size} • SET $currentSet/${exercise.sets}",
-                    fontFamily = FontFamily.Monospace,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 12.sp,
-                    color = TacticalColors.MentalCyan
-                )
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = "Exercise ${exerciseIdx + 1} of ${program.exercises.size}",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TacticalColors.TextPrimary
+                    )
+                    Text(
+                        text = "Set $currentSet of ${exercise.sets}",
+                        fontSize = 11.sp,
+                        color = TacticalColors.MentalCyan
+                    )
+                }
                 Row {
                     IconButton(onClick = { voiceOn = !voiceOn }) {
                         Icon(
                             if (voiceOn) Icons.AutoMirrored.Rounded.VolumeUp else Icons.AutoMirrored.Rounded.VolumeOff,
-                            "Voice Coach",
+                            "Voice",
                             tint = if (voiceOn) TacticalColors.MentalCyan else TacticalColors.TextMuted
                         )
                     }
@@ -244,7 +253,7 @@ fun WorkoutPlayerScreen(
                     }
                 }
             }
-
+            Spacer(Modifier.height(6.dp))
             LinearProgressIndicator(
                 progress = { overallProgress },
                 modifier = Modifier
@@ -256,38 +265,42 @@ fun WorkoutPlayerScreen(
             )
         }
 
-        // Center Stage: Phase Ring + Exercise Info
+        // Scrollable Middle Area (never clips on smaller phones)
         Column(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally
+            modifier = Modifier
+                .weight(1f)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            Text(
-                text = if (phase == TimerPhase.REST) "RECOVERY REST" else exercise.equipment.label.uppercase(),
-                fontFamily = FontFamily.Monospace,
-                fontWeight = FontWeight.Bold,
-                fontSize = 12.sp,
-                color = if (phase == TimerPhase.REST) TacticalColors.MentalCyan else TacticalColors.PhysicalCrimson
-            )
-            Spacer(Modifier.height(6.dp))
-            Text(
-                text = displayName,
-                style = MaterialTheme.typography.headlineMedium,
-                color = TacticalColors.TextPrimary
-            )
-            Spacer(Modifier.height(6.dp))
-            KneeSafetyPill(isSafe = true, label = "KNEE-SAFE PROTOCOL")
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = if (phase == TimerPhase.REST) "RECOVERY REST" else exercise.equipment.label.uppercase(),
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = if (phase == TimerPhase.REST) TacticalColors.MentalCyan else TacticalColors.PhysicalCrimson
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = displayName,
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = TacticalColors.TextPrimary,
+                    textAlign = TextAlign.Center
+                )
+                Spacer(Modifier.height(6.dp))
+                KneeSafetyPill(isSafe = true, label = "Knee-Safe Protocol")
+            }
 
-            Spacer(Modifier.height(20.dp))
-
-            // Countdown Circle or Rep Target Display
+            // Countdown Circle or Rep Target
             Box(
-                modifier = Modifier.size(196.dp),
+                modifier = Modifier.size(176.dp),
                 contentAlignment = Alignment.Center
             ) {
                 val ringColor = if (phase == TimerPhase.REST) TacticalColors.MentalCyan else TacticalColors.PhysicalCrimson
                 val frac = if (totalSeconds > 0) remainingSeconds.toFloat() / totalSeconds else 1f
-                Canvas(modifier = Modifier.size(188.dp)) {
-                    val stroke = 12.dp.toPx()
+                Canvas(modifier = Modifier.size(168.dp)) {
+                    val stroke = 11.dp.toPx()
                     drawArc(
                         color = ringColor.copy(alpha = 0.16f),
                         startAngle = -90f,
@@ -310,95 +323,81 @@ fun WorkoutPlayerScreen(
                         val secs = remainingSeconds % 60
                         Text(
                             text = String.format("%02d:%02d", mins, secs),
-                            fontSize = 42.sp,
+                            fontSize = 40.sp,
                             fontWeight = FontWeight.Black,
                             fontFamily = FontFamily.Monospace,
                             color = TacticalColors.TextPrimary
                         )
                         Text(
-                            text = if (phase == TimerPhase.REST) "NEXT: SET ${if (currentSet < exercise.sets) currentSet + 1 else 1}" else exercise.repsOrSeconds,
+                            text = if (phase == TimerPhase.REST) "Next: Set ${if (currentSet < exercise.sets) currentSet + 1 else 1}" else exercise.repsOrSeconds,
                             fontSize = 12.sp,
                             color = TacticalColors.TextSecondary
                         )
                     } else {
                         Text(
                             text = exercise.repsOrSeconds,
-                            fontSize = 28.sp,
+                            fontSize = 26.sp,
                             fontWeight = FontWeight.Black,
-                            fontFamily = FontFamily.Monospace,
                             color = TacticalColors.TextPrimary
                         )
                         Text(
-                            text = "SET $currentSet OF ${exercise.sets}",
-                            fontSize = 12.sp,
-                            fontFamily = FontFamily.Monospace,
+                            text = "Set $currentSet / ${exercise.sets}",
+                            fontSize = 13.sp,
                             color = TacticalColors.TextSecondary
                         )
                     }
                 }
             }
 
-            Spacer(Modifier.height(16.dp))
-
-            // Form + Knee Safety Card
-            TacticalCard {
-                Text(
-                    text = "FORM CUE",
-                    fontSize = 10.sp,
-                    fontFamily = FontFamily.Monospace,
-                    fontWeight = FontWeight.Bold,
-                    color = TacticalColors.MentalCyan
+            // Inline Real Darebee Motion GIF when available
+            if (!exercise.darebeeSlug.isNullOrBlank()) {
+                DarebeeGifBanner(
+                    darebeeSlug = exercise.darebeeSlug,
+                    contentDescription = displayName,
+                    modifier = Modifier.height(155.dp)
                 )
-                Text(text = displayCue, fontSize = 13.sp, color = TacticalColors.TextPrimary)
-                Spacer(Modifier.height(6.dp))
-                Text(
-                    text = "KNEE NOTE: ${exercise.kneeSafetyNote}",
-                    fontSize = 12.sp,
-                    color = TacticalColors.KneeSafeGreen
-                )
+            }
 
-                if (exercise.kneeSwapName != null) {
-                    Spacer(Modifier.height(8.dp))
-                    OutlinedButton(
-                        onClick = { useKneeSwap = !useKneeSwap },
-                        shape = RoundedCornerShape(8.dp),
-                        border = BorderStroke(1.dp, TacticalColors.CautionAmber.copy(alpha = 0.6f))
-                    ) {
-                        Icon(Icons.Rounded.SwapHoriz, null, tint = TacticalColors.CautionAmber, modifier = Modifier.size(16.dp))
-                        Spacer(Modifier.width(6.dp))
-                        Text(
-                            text = if (useKneeSwap) "Switch back to ${exercise.name}" else "Swap to ${exercise.kneeSwapName}",
-                            color = TacticalColors.CautionAmber,
-                            fontSize = 12.sp
-                        )
-                    }
-                }
-
-                Spacer(Modifier.height(8.dp))
-                OutlinedButton(
-                    onClick = {
-                        timerRunning = false
-                        showHowTo = true
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(8.dp),
-                    border = BorderStroke(1.dp, TacticalColors.MentalCyan.copy(alpha = 0.6f))
-                ) {
-                    Icon(Icons.Rounded.PlayCircle, null, tint = TacticalColors.MentalCyan, modifier = Modifier.size(17.dp))
-                    Spacer(Modifier.width(6.dp))
+            // Clean Form + Knee Cue Card
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                color = TacticalColors.CardDark
+            ) {
+                Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(text = displayCue, fontSize = 14.sp, lineHeight = 20.sp, color = TacticalColors.TextPrimary)
                     Text(
-                        text = "HOW-TO VIDEO & STEP-BY-STEP FORM",
-                        color = TacticalColors.MentalCyan,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        fontFamily = FontFamily.Monospace
+                        text = "Knee Check: ${exercise.kneeSafetyNote}",
+                        fontSize = 13.sp,
+                        color = TacticalColors.KneeSafeGreen
                     )
+                    if (exercise.kneeSwapName != null) {
+                        OutlinedButton(
+                            onClick = { useKneeSwap = !useKneeSwap },
+                            shape = RoundedCornerShape(10.dp),
+                            border = BorderStroke(1.dp, TacticalColors.CautionAmber.copy(alpha = 0.6f))
+                        ) {
+                            Icon(Icons.Rounded.SwapHoriz, null, tint = TacticalColors.CautionAmber, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text(
+                                text = if (useKneeSwap) "Switch back to ${exercise.name}" else "Swap to ${exercise.kneeSwapName}",
+                                color = TacticalColors.CautionAmber,
+                                fontSize = 12.sp
+                            )
+                        }
+                    }
                 }
             }
         }
 
-        // Bottom Controls
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        // Thumb-Friendly Bottom Action Dock
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(TacticalColors.SurfaceDark)
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
             if (phase == TimerPhase.REST) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -406,39 +405,49 @@ fun WorkoutPlayerScreen(
                 ) {
                     OutlinedButton(
                         onClick = { remainingSeconds += 15; totalSeconds = maxOf(totalSeconds, remainingSeconds) },
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(10.dp)
+                        modifier = Modifier.weight(1f).height(50.dp),
+                        shape = RoundedCornerShape(12.dp)
                     ) {
-                        Text("+15s", color = TacticalColors.TextPrimary, fontFamily = FontFamily.Monospace)
+                        Text("+15s", color = TacticalColors.TextPrimary, fontWeight = FontWeight.Bold)
                     }
                     OutlinedButton(
                         onClick = { timerRunning = !timerRunning },
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(10.dp)
+                        modifier = Modifier.weight(1f).height(50.dp),
+                        shape = RoundedCornerShape(12.dp)
                     ) {
-                        Icon(
-                            if (timerRunning) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
-                            null,
-                            tint = TacticalColors.MentalCyan
-                        )
+                        Icon(if (timerRunning) Icons.Rounded.Pause else Icons.Rounded.PlayArrow, null, tint = TacticalColors.MentalCyan)
                         Spacer(Modifier.width(4.dp))
-                        Text(if (timerRunning) "PAUSE" else "RESUME", color = TacticalColors.MentalCyan)
+                        Text(if (timerRunning) "Pause" else "Resume", color = TacticalColors.MentalCyan, fontWeight = FontWeight.Bold)
                     }
                     Button(
                         onClick = { timerRunning = false; advanceAfterRest() },
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.weight(1f).height(50.dp),
+                        shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = TacticalColors.MentalCyan)
                     ) {
                         Icon(Icons.Rounded.SkipNext, null, tint = TacticalColors.AmoledBlack)
-                        Text("SKIP", color = TacticalColors.AmoledBlack, fontWeight = FontWeight.Bold)
+                        Text("Skip", color = TacticalColors.AmoledBlack, fontWeight = FontWeight.Bold)
                     }
                 }
             } else {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
+                    OutlinedButton(
+                        onClick = {
+                            timerRunning = false
+                            showHowTo = true
+                        },
+                        modifier = Modifier.height(52.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        border = BorderStroke(1.dp, TacticalColors.MentalCyan.copy(alpha = 0.6f))
+                    ) {
+                        Icon(Icons.Rounded.PlayCircle, null, tint = TacticalColors.MentalCyan, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text("How-To", color = TacticalColors.MentalCyan, fontWeight = FontWeight.Bold)
+                    }
+
                     if (exercise.isTimed) {
                         Button(
                             onClick = {
@@ -460,9 +469,9 @@ fun WorkoutPlayerScreen(
                                 null,
                                 tint = if (timerRunning) TacticalColors.TextPrimary else TacticalColors.AmoledBlack
                             )
-                            Spacer(Modifier.width(6.dp))
+                            Spacer(Modifier.width(4.dp))
                             Text(
-                                text = if (timerRunning) "PAUSE" else "START TIMER",
+                                text = if (timerRunning) "Pause" else "Start",
                                 color = if (timerRunning) TacticalColors.TextPrimary else TacticalColors.AmoledBlack,
                                 fontWeight = FontWeight.Bold
                             )
@@ -478,31 +487,36 @@ fun WorkoutPlayerScreen(
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = TacticalColors.PhysicalCrimson)
                     ) {
-                        Icon(Icons.Rounded.CheckCircle, null)
+                        Icon(Icons.Rounded.CheckCircle, null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(6.dp))
-                        Text("COMPLETE SET", fontWeight = FontWeight.Bold)
+                        Text("Done Set", fontWeight = FontWeight.Bold)
                     }
                 }
             }
 
-            TextButton(
-                onClick = { showFinishDialog = true },
-                modifier = Modifier.fillMaxWidth()
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Finish & Log Session Early", color = TacticalColors.TextMuted, fontSize = 12.sp)
+                TextButton(onClick = { showFinishDialog = true }) {
+                    Text("Finish Session Early", color = TacticalColors.TextMuted, fontSize = 12.sp)
+                }
+                if (phase == TimerPhase.REST) {
+                    TextButton(onClick = { showHowTo = true }) {
+                        Text("View Next Form Guide", color = TacticalColors.MentalCyan, fontSize = 12.sp)
+                    }
+                }
             }
         }
     }
 
-    // Completion + Knee Comfort Check-in Dialog
     if (showFinishDialog) {
         val elapsedMin = ((System.currentTimeMillis() - sessionStartMs) / 60000L).toInt().coerceAtLeast(1)
         AlertDialog(
             onDismissRequest = { showFinishDialog = false },
             containerColor = TacticalColors.CardDark,
-            title = {
-                Text("Session Complete — Knee Check", color = TacticalColors.TextPrimary)
-            },
+            title = { Text("Session Complete — Knee Check", color = TacticalColors.TextPrimary) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
@@ -531,7 +545,7 @@ fun WorkoutPlayerScreen(
                     }
                     Text(
                         text = "Logging this automatically credits today's Physical Win!",
-                        fontSize = 11.sp,
+                        fontSize = 12.sp,
                         color = TacticalColors.MentalCyan
                     )
                 }
@@ -551,7 +565,7 @@ fun WorkoutPlayerScreen(
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = TacticalColors.FinancialEmerald)
                 ) {
-                    Text("SAVE & WIN", color = TacticalColors.AmoledBlack, fontWeight = FontWeight.Bold)
+                    Text("Save & Win", color = TacticalColors.AmoledBlack, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {

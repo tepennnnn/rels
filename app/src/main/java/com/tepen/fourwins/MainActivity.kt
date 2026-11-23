@@ -5,6 +5,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -103,6 +104,7 @@ private fun FourWinsRoot(vm: MainViewModel = viewModel()) {
 
     when {
         activeWorkout != null -> {
+            BackHandler { activeWorkout = null }
             WorkoutPlayerScreen(
                 vm = vm,
                 program = activeWorkout!!,
@@ -110,6 +112,7 @@ private fun FourWinsRoot(vm: MainViewModel = viewModel()) {
             )
         }
         activePdf != null -> {
+            BackHandler { activePdf = null }
             PdfViewerScreen(
                 vm = vm,
                 pdfItem = activePdf!!,

@@ -37,6 +37,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -49,9 +50,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.tepen.fourwins.MainViewModel
@@ -61,7 +60,6 @@ import com.tepen.fourwins.model.WinPillar
 import com.tepen.fourwins.model.WorkoutProgram
 import com.tepen.fourwins.ui.components.FourWinsArcadeWheel
 import com.tepen.fourwins.ui.components.KneeSafetyPill
-import com.tepen.fourwins.ui.components.TacticalCard
 import com.tepen.fourwins.ui.components.pillarColor
 import com.tepen.fourwins.ui.components.pillarIcon
 import com.tepen.fourwins.ui.theme.TacticalColors
@@ -96,6 +94,7 @@ fun WinsScreen(
     var editingPillar by remember { mutableStateOf<WinPillar?>(null) }
     var editingHabit by remember { mutableStateOf<WinHabit?>(null) }
     var habitTextInput by remember { mutableStateOf("") }
+    var activePillarFilter by remember { mutableStateOf<WinPillar?>(null) }
 
     var noteText by remember(selectedDateIso, entry?.victoryNote) {
         mutableStateOf(entry?.victoryNote.orEmpty())
@@ -110,7 +109,7 @@ fun WinsScreen(
             .fillMaxSize()
             .background(TacticalColors.AmoledBlack),
         contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         // Header + Date Switcher
         item {
@@ -121,56 +120,52 @@ fun WinsScreen(
             ) {
                 Column {
                     Text(
-                        text = "4 DAILY WINS",
+                        text = "4 Daily Wins",
                         style = MaterialTheme.typography.headlineMedium,
                         color = TacticalColors.TextPrimary
                     )
                     Text(
-                        text = "${profile.weightKg}kg • Recomp & Knee-Safe Mode",
-                        fontSize = 12.sp,
+                        text = "${profile.weightKg} kg • Recomp & Knee-Safe",
+                        fontSize = 13.sp,
                         color = TacticalColors.TextSecondary
                     )
                 }
 
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(TacticalColors.CardDark)
-                        .border(1.dp, TacticalColors.BorderHairline, RoundedCornerShape(12.dp))
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = TacticalColors.CardDark
                 ) {
-                    IconButton(
-                        onClick = { vm.selectDate(selectedDate.minusDays(1).toString()) },
-                        modifier = Modifier.size(34.dp)
-                    ) {
-                        Icon(Icons.Rounded.ChevronLeft, "Previous Day", tint = TacticalColors.TextSecondary)
-                    }
-                    Text(
-                        text = if (isToday) "TODAY" else selectedDate.format(DateTimeFormatter.ofPattern("MMM dd")),
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        fontFamily = FontFamily.Monospace,
-                        color = if (isToday) TacticalColors.MentalCyan else TacticalColors.TextPrimary,
-                        modifier = Modifier.padding(horizontal = 4.dp)
-                    )
-                    IconButton(
-                        onClick = {
-                            if (!isToday) vm.selectDate(selectedDate.plusDays(1).toString())
-                        },
-                        enabled = !isToday,
-                        modifier = Modifier.size(34.dp)
-                    ) {
-                        Icon(
-                            Icons.Rounded.ChevronRight,
-                            "Next Day",
-                            tint = if (isToday) TacticalColors.TextMuted else TacticalColors.TextSecondary
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        IconButton(
+                            onClick = { vm.selectDate(selectedDate.minusDays(1).toString()) },
+                            modifier = Modifier.size(36.dp)
+                        ) {
+                            Icon(Icons.Rounded.ChevronLeft, "Previous Day", tint = TacticalColors.TextSecondary)
+                        }
+                        Text(
+                            text = if (isToday) "Today" else selectedDate.format(DateTimeFormatter.ofPattern("MMM d")),
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (isToday) TacticalColors.MentalCyan else TacticalColors.TextPrimary,
+                            modifier = Modifier.padding(horizontal = 4.dp)
                         )
+                        IconButton(
+                            onClick = { if (!isToday) vm.selectDate(selectedDate.plusDays(1).toString()) },
+                            enabled = !isToday,
+                            modifier = Modifier.size(36.dp)
+                        ) {
+                            Icon(
+                                Icons.Rounded.ChevronRight,
+                                "Next Day",
+                                tint = if (isToday) TacticalColors.TextMuted else TacticalColors.TextSecondary
+                            )
+                        }
                     }
                 }
             }
         }
 
-        // Hero 4-Wins Quadrant Wheel
+        // Hero 4-Quadrant Wheel
         item {
             FourWinsArcadeWheel(
                 pillarStatus = dayPillarStatus,
@@ -186,34 +181,95 @@ fun WinsScreen(
             )
         }
 
+        // 2x2 Quick Whiteboard Pillar Grid (mirrors the 4 Daily Wins board)
+        item {
+            val rows = listOf(
+                WinPillar.PHYSICAL to WinPillar.FINANCIAL,
+                WinPillar.MENTAL to WinPillar.SPIRITUAL
+            )
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                rows.forEach { (left, right) ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        listOf(left, right).forEach { pillar ->
+                            val c = pillarColor(pillar)
+                            val won = dayPillarStatus[pillar] == true
+                            val pHabits = habits.filter { it.pillar == pillar && it.isActive }
+                            val doneCount = pHabits.count { it.id in completedIds }
+                            val focused = activePillarFilter == pillar
+                            Surface(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clickable {
+                                        activePillarFilter = if (focused) null else pillar
+                                    },
+                                shape = RoundedCornerShape(16.dp),
+                                color = if (won) c.copy(alpha = 0.14f) else TacticalColors.CardDark,
+                                border = BorderStroke(
+                                    width = if (focused || won) 1.5.dp else 0.dp,
+                                    color = if (focused) Color.White.copy(alpha = 0.7f) else if (won) c.copy(alpha = 0.6f) else Color.Transparent
+                                )
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(pillarIcon(pillar), null, tint = c, modifier = Modifier.size(20.dp))
+                                        Spacer(Modifier.width(8.dp))
+                                        Column {
+                                            Text(
+                                                text = pillar.title,
+                                                fontSize = 14.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = TacticalColors.TextPrimary
+                                            )
+                                            Text(
+                                                text = "$doneCount/${pHabits.size} done",
+                                                fontSize = 11.sp,
+                                                color = if (won) c else TacticalColors.TextSecondary
+                                            )
+                                        }
+                                    }
+                                    if (won) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(20.dp)
+                                                .clip(CircleShape)
+                                                .background(c),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(Icons.Rounded.Check, null, tint = TacticalColors.AmoledBlack, modifier = Modifier.size(13.dp))
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         // Perfect 4/4 Banner
         item {
             AnimatedVisibility(visible = dayPillarsWon == 4) {
-                TacticalCard(
-                    borderColor = TacticalColors.ArcadeGold,
-                    backgroundColor = TacticalColors.ArcadeGold.copy(alpha = 0.11f)
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = TacticalColors.ArcadeGold.copy(alpha = 0.14f),
+                    border = BorderStroke(1.dp, TacticalColors.ArcadeGold)
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            Icons.Rounded.EmojiEvents,
-                            contentDescription = null,
-                            tint = TacticalColors.ArcadeGold,
-                            modifier = Modifier.size(26.dp)
-                        )
-                        Spacer(Modifier.width(10.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Rounded.EmojiEvents, null, tint = TacticalColors.ArcadeGold, modifier = Modifier.size(28.dp))
+                        Spacer(Modifier.width(12.dp))
                         Column {
-                            Text(
-                                text = "4/4 DAILY WINS LOCKED IN!",
-                                color = TacticalColors.ArcadeGold,
-                                fontWeight = FontWeight.ExtraBold,
-                                fontFamily = FontFamily.Monospace,
-                                fontSize = 13.sp
-                            )
-                            Text(
-                                text = "+50 Bonus XP earned. Perfect-day streak: ${stats.perfectDayStreak}d",
-                                color = TacticalColors.TextPrimary,
-                                fontSize = 12.sp
-                            )
+                            Text("4/4 Daily Wins Complete!", color = TacticalColors.ArcadeGold, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                            Text("Perfect-day streak: ${stats.perfectDayStreak} days • +50 Bonus XP", color = TacticalColors.TextPrimary, fontSize = 12.sp)
                         }
                     }
                 }
@@ -222,191 +278,153 @@ fun WinsScreen(
 
         // Today's Tailored Workout Quick-Launch
         item {
-            TacticalCard(
-                borderColor = TacticalColors.PhysicalCrimson.copy(alpha = 0.55f),
-                backgroundColor = TacticalColors.CardElevated
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(18.dp),
+                color = TacticalColors.CardElevated
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "TODAY'S TAILORED SESSION",
-                        color = TacticalColors.PhysicalCrimson,
-                        style = MaterialTheme.typography.labelMedium
-                    )
-                    KneeSafetyPill(isSafe = true, label = recommendedProgram.kneeSafeRating.uppercase())
-                }
-                Spacer(Modifier.height(6.dp))
-                Text(
-                    text = recommendedProgram.title,
-                    style = MaterialTheme.typography.titleLarge,
-                    color = TacticalColors.TextPrimary
-                )
-                Text(
-                    text = "${recommendedProgram.durationMinutes} min • ${recommendedProgram.focus}",
-                    fontSize = 12.sp,
-                    color = TacticalColors.TextSecondary
-                )
-                Spacer(Modifier.height(10.dp))
-                Button(
-                    onClick = { onStartWorkout(recommendedProgram) },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(10.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = TacticalColors.PhysicalCrimson,
-                        contentColor = Color.White
-                    )
-                ) {
-                    Icon(Icons.Rounded.PlayArrow, contentDescription = null)
-                    Spacer(Modifier.width(6.dp))
-                    Text("START GUIDED WORKOUT", fontWeight = FontWeight.Bold)
-                }
-            }
-        }
-
-        // The 4 Pillars Checklist (Physical, Mental, Financial, Spiritual)
-        WinPillar.entries.forEach { pillar ->
-            item(key = pillar.name) {
-                val pillarHabits = habits.filter { it.pillar == pillar && it.isActive }
-                val pillarWon = dayPillarStatus[pillar] == true
-                val accent = pillarColor(pillar)
-
-                TacticalCard(
-                    borderColor = if (pillarWon) accent.copy(alpha = 0.7f) else TacticalColors.BorderHairline
-                ) {
+                Column(modifier = Modifier.padding(16.dp)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(
-                                modifier = Modifier
-                                    .size(32.dp)
-                                    .clip(RoundedCornerShape(9.dp))
-                                    .background(accent.copy(alpha = 0.16f)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = pillarIcon(pillar),
-                                    contentDescription = null,
-                                    tint = accent,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                            }
-                            Spacer(Modifier.width(10.dp))
-                            Column {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text(
-                                        text = pillar.title.uppercase(),
-                                        color = accent,
-                                        fontWeight = FontWeight.ExtraBold,
-                                        fontFamily = FontFamily.Monospace,
-                                        fontSize = 13.sp
-                                    )
-                                    if (pillarWon) {
-                                        Spacer(Modifier.width(8.dp))
-                                        Text(
-                                            text = "WIN ✓",
-                                            color = accent,
-                                            fontSize = 10.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            fontFamily = FontFamily.Monospace,
-                                            modifier = Modifier
-                                                .clip(RoundedCornerShape(4.dp))
-                                                .background(accent.copy(alpha = 0.18f))
-                                                .padding(horizontal = 6.dp, vertical = 2.dp)
-                                        )
-                                    }
-                                }
-                                Text(
-                                    text = pillar.description,
-                                    fontSize = 11.sp,
-                                    color = TacticalColors.TextMuted
-                                )
-                            }
-                        }
-
-                        IconButton(
-                            onClick = {
-                                editingPillar = pillar
-                                editingHabit = null
-                                habitTextInput = ""
-                            },
-                            modifier = Modifier.size(32.dp)
-                        ) {
-                            Icon(
-                                Icons.Rounded.Add,
-                                contentDescription = "Add task",
-                                tint = TacticalColors.TextSecondary,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
+                        Text(
+                            text = "Today's Workout",
+                            color = TacticalColors.PhysicalCrimson,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        KneeSafetyPill(isSafe = true, label = recommendedProgram.kneeSafeRating)
                     }
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        text = recommendedProgram.title,
+                        style = MaterialTheme.typography.titleLarge,
+                        color = TacticalColors.TextPrimary
+                    )
+                    Text(
+                        text = "${recommendedProgram.durationMinutes} min • ${recommendedProgram.focus}",
+                        fontSize = 13.sp,
+                        color = TacticalColors.TextSecondary
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    Button(
+                        onClick = { onStartWorkout(recommendedProgram) },
+                        modifier = Modifier.fillMaxWidth().height(48.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = TacticalColors.PhysicalCrimson,
+                            contentColor = Color.White
+                        )
+                    ) {
+                        Icon(Icons.Rounded.PlayArrow, null)
+                        Spacer(Modifier.width(6.dp))
+                        Text("Start Guided Session", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    }
+                }
+            }
+        }
 
-                    Spacer(Modifier.height(10.dp))
+        // Checklist Cards (Filtered by activePillarFilter if user tapped a quadrant)
+        val visiblePillars = if (activePillarFilter != null) listOf(activePillarFilter!!) else WinPillar.entries
+        visiblePillars.forEach { pillar ->
+            item(key = pillar.name) {
+                val pillarHabits = habits.filter { it.pillar == pillar && it.isActive }
+                val pillarWon = dayPillarStatus[pillar] == true
+                val accent = pillarColor(pillar)
 
-                    pillarHabits.forEachIndexed { idx, habit ->
-                        val checked = habit.id in completedIds
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(18.dp),
+                    color = TacticalColors.CardDark
+                ) {
+                    Column(modifier = Modifier.padding(14.dp)) {
                         Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 3.dp)
-                                .clip(RoundedCornerShape(10.dp))
-                                .background(
-                                    if (checked) accent.copy(alpha = 0.11f) else TacticalColors.AmoledBlack
-                                )
-                                .border(
-                                    1.dp,
-                                    if (checked) accent.copy(alpha = 0.45f) else TacticalColors.BorderHairline,
-                                    RoundedCornerShape(10.dp)
-                                )
-                                .clickable { vm.toggleHabit(habit.id) }
-                                .padding(horizontal = 10.dp, vertical = 10.dp),
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(22.dp)
-                                    .clip(CircleShape)
-                                    .background(if (checked) accent else Color.Transparent)
-                                    .border(1.5.dp, if (checked) accent else TacticalColors.TextMuted, CircleShape),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                if (checked) {
-                                    Icon(
-                                        Icons.Rounded.Check,
-                                        contentDescription = null,
-                                        tint = TacticalColors.AmoledBlack,
-                                        modifier = Modifier.size(14.dp)
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(34.dp)
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .background(accent.copy(alpha = 0.16f)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(pillarIcon(pillar), null, tint = accent, modifier = Modifier.size(18.dp))
+                                }
+                                Spacer(Modifier.width(10.dp))
+                                Column {
+                                    Text(
+                                        text = pillar.title,
+                                        color = TacticalColors.TextPrimary,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 16.sp
+                                    )
+                                    Text(
+                                        text = if (pillarWon) "Win earned today" else pillar.description,
+                                        fontSize = 12.sp,
+                                        color = if (pillarWon) accent else TacticalColors.TextSecondary
                                     )
                                 }
                             }
-                            Spacer(Modifier.width(10.dp))
-                            Text(
-                                text = "${idx + 1}. ${habit.title}",
-                                color = if (checked) TacticalColors.TextPrimary else TacticalColors.TextSecondary,
-                                fontWeight = if (checked) FontWeight.SemiBold else FontWeight.Normal,
-                                textDecoration = if (checked) TextDecoration.None else TextDecoration.None,
-                                modifier = Modifier.weight(1f),
-                                fontSize = 14.sp
-                            )
                             IconButton(
                                 onClick = {
                                     editingPillar = pillar
-                                    editingHabit = habit
-                                    habitTextInput = habit.title
-                                },
-                                modifier = Modifier.size(28.dp)
+                                    editingHabit = null
+                                    habitTextInput = ""
+                                }
                             ) {
-                                Icon(
-                                    Icons.Rounded.Edit,
-                                    contentDescription = "Edit task",
-                                    tint = TacticalColors.TextMuted,
-                                    modifier = Modifier.size(15.dp)
+                                Icon(Icons.Rounded.Add, "Add task", tint = TacticalColors.TextSecondary)
+                            }
+                        }
+
+                        Spacer(Modifier.height(8.dp))
+
+                        pillarHabits.forEachIndexed { idx, habit ->
+                            val checked = habit.id in completedIds
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(if (checked) accent.copy(alpha = 0.13f) else TacticalColors.SurfaceDark)
+                                    .clickable { vm.toggleHabit(habit.id) }
+                                    .padding(horizontal = 12.dp, vertical = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(24.dp)
+                                        .clip(CircleShape)
+                                        .background(if (checked) accent else Color.Transparent)
+                                        .border(1.8.dp, if (checked) accent else TacticalColors.TextMuted, CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    if (checked) {
+                                        Icon(Icons.Rounded.Check, null, tint = TacticalColors.AmoledBlack, modifier = Modifier.size(15.dp))
+                                    }
+                                }
+                                Spacer(Modifier.width(12.dp))
+                                Text(
+                                    text = "${idx + 1}. ${habit.title}",
+                                    color = if (checked) TacticalColors.TextPrimary else TacticalColors.TextSecondary,
+                                    fontWeight = if (checked) FontWeight.SemiBold else FontWeight.Normal,
+                                    modifier = Modifier.weight(1f),
+                                    fontSize = 15.sp
                                 )
+                                IconButton(
+                                    onClick = {
+                                        editingPillar = pillar
+                                        editingHabit = habit
+                                        habitTextInput = habit.title
+                                    },
+                                    modifier = Modifier.size(30.dp)
+                                ) {
+                                    Icon(Icons.Rounded.Edit, "Edit", tint = TacticalColors.TextMuted, modifier = Modifier.size(16.dp))
+                                }
                             }
                         }
                     }
@@ -414,53 +432,50 @@ fun WinsScreen(
             }
         }
 
-        // Daily Victory / Gratitude Log (Counting Victories)
+        // Daily Victory / Gratitude Log
         item {
-            TacticalCard {
-                Text(
-                    text = "DAILY VICTORY LOG",
-                    color = TacticalColors.SpiritualAmber,
-                    style = MaterialTheme.typography.labelMedium
-                )
-                Text(
-                    text = "Name 1 specific win or gratitude line for today.",
-                    fontSize = 12.sp,
-                    color = TacticalColors.TextSecondary
-                )
-                Spacer(Modifier.height(8.dp))
-                OutlinedTextField(
-                    value = noteText,
-                    onValueChange = { noteText = it },
-                    placeholder = { Text("e.g., Completed 45m row + bench session, knee felt great.", fontSize = 13.sp) },
-                    modifier = Modifier.fillMaxWidth(),
-                    minLines = 2,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = TacticalColors.SpiritualAmber,
-                        unfocusedBorderColor = TacticalColors.BorderHairline,
-                        focusedTextColor = TacticalColors.TextPrimary,
-                        unfocusedTextColor = TacticalColors.TextPrimary
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(18.dp),
+                color = TacticalColors.CardDark
+            ) {
+                Column(modifier = Modifier.padding(14.dp)) {
+                    Text("Daily Victory Note", color = TacticalColors.SpiritualAmber, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                    Text("Write 1 specific win or gratitude line for today.", fontSize = 12.sp, color = TacticalColors.TextSecondary)
+                    Spacer(Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = noteText,
+                        onValueChange = { noteText = it },
+                        placeholder = { Text("e.g., Finished Day 1 bench & incline walk, knee felt great.", fontSize = 13.sp) },
+                        modifier = Modifier.fillMaxWidth(),
+                        minLines = 2,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = TacticalColors.SpiritualAmber,
+                            unfocusedBorderColor = TacticalColors.BorderHairline,
+                            focusedTextColor = TacticalColors.TextPrimary,
+                            unfocusedTextColor = TacticalColors.TextPrimary
+                        )
                     )
-                )
-                Spacer(Modifier.height(8.dp))
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                    Button(
-                        onClick = { vm.saveVictoryNote(noteText) },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = TacticalColors.SpiritualAmber,
-                            contentColor = TacticalColors.AmoledBlack
-                        ),
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Text("SAVE VICTORY", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    Spacer(Modifier.height(8.dp))
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                        Button(
+                            onClick = { vm.saveVictoryNote(noteText) },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = TacticalColors.SpiritualAmber,
+                                contentColor = TacticalColors.AmoledBlack
+                            ),
+                            shape = RoundedCornerShape(10.dp)
+                        ) {
+                            Text("Save Note", fontWeight = FontWeight.Bold)
+                        }
                     }
                 }
             }
         }
 
-        item { Spacer(Modifier.height(18.dp)) }
+        item { Spacer(Modifier.height(16.dp)) }
     }
 
-    // Add / Edit Habit Dialog
     if (editingPillar != null) {
         val targetPillar = editingPillar!!
         AlertDialog(
@@ -495,12 +510,10 @@ fun WinsScreen(
             dismissButton = {
                 Row {
                     if (editingHabit != null) {
-                        TextButton(
-                            onClick = {
-                                vm.deleteHabit(editingHabit!!.id)
-                                editingPillar = null
-                            }
-                        ) {
+                        TextButton(onClick = {
+                            vm.deleteHabit(editingHabit!!.id)
+                            editingPillar = null
+                        }) {
                             Icon(Icons.Rounded.DeleteOutline, null, tint = TacticalColors.AlertRed, modifier = Modifier.size(16.dp))
                             Spacer(Modifier.width(4.dp))
                             Text("Delete", color = TacticalColors.AlertRed)
