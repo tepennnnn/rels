@@ -27,6 +27,7 @@ import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.NotificationsActive
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.PlayCircle
 import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.material.icons.rounded.SwapHoriz
 import androidx.compose.material.icons.rounded.Vibration
@@ -64,6 +65,7 @@ import androidx.compose.ui.unit.sp
 import com.tepen.fourwins.MainViewModel
 import com.tepen.fourwins.model.KneeComfort
 import com.tepen.fourwins.model.WorkoutProgram
+import com.tepen.fourwins.ui.components.ExerciseHowToDialog
 import com.tepen.fourwins.ui.components.KneeSafetyPill
 import com.tepen.fourwins.ui.components.TacticalCard
 import com.tepen.fourwins.ui.theme.TacticalColors
@@ -111,6 +113,7 @@ fun WorkoutPlayerScreen(
     var totalSetsLogged by remember { mutableIntStateOf(0) }
     val sessionStartMs = remember { System.currentTimeMillis() }
     var showFinishDialog by remember { mutableStateOf(false) }
+    var showHowTo by remember { mutableStateOf(false) }
     var selectedKneeComfort by remember { mutableStateOf(KneeComfort.GREAT) }
 
     // Keep screen awake during active training
@@ -370,6 +373,27 @@ fun WorkoutPlayerScreen(
                         )
                     }
                 }
+
+                Spacer(Modifier.height(8.dp))
+                OutlinedButton(
+                    onClick = {
+                        timerRunning = false
+                        showHowTo = true
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(8.dp),
+                    border = BorderStroke(1.dp, TacticalColors.MentalCyan.copy(alpha = 0.6f))
+                ) {
+                    Icon(Icons.Rounded.PlayCircle, null, tint = TacticalColors.MentalCyan, modifier = Modifier.size(17.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        text = "HOW-TO VIDEO & STEP-BY-STEP FORM",
+                        color = TacticalColors.MentalCyan,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = FontFamily.Monospace
+                    )
+                }
             }
         }
 
@@ -535,6 +559,14 @@ fun WorkoutPlayerScreen(
                     Text("Resume", color = TacticalColors.TextSecondary)
                 }
             }
+        )
+    }
+
+    if (showHowTo) {
+        ExerciseHowToDialog(
+            exercise = exercise,
+            onSpeakSteps = { txt -> vm.coach.speak(txt, true) },
+            onDismiss = { showHowTo = false }
         )
     }
 }

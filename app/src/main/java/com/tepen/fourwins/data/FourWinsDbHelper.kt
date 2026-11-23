@@ -5,6 +5,7 @@ import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 import com.tepen.fourwins.model.DailyWinEntry
+import com.tepen.fourwins.model.DarebeeExerciseDetail
 import com.tepen.fourwins.model.Equipment
 import com.tepen.fourwins.model.KneeComfort
 import com.tepen.fourwins.model.PdfLibraryItem
@@ -128,12 +129,39 @@ class FourWinsDbHelper(context: Context) : SQLiteOpenHelper(context, DB_NAME, nu
             )
             """.trimIndent()
         )
+        createExerciseGuidesTable(db)
 
         seedDefaults(db)
     }
 
+    private fun createExerciseGuidesTable(db: SQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS saved_exercise_guides (
+                slug TEXT PRIMARY KEY,
+                title TEXT NOT NULL,
+                url TEXT NOT NULL,
+                thumb_url TEXT NOT NULL,
+                youtube_embed TEXT NOT NULL,
+                youtube_watch TEXT NOT NULL,
+                instructions TEXT NOT NULL,
+                steps_sep TEXT NOT NULL,
+                works_muscles TEXT NOT NULL,
+                breathing TEXT NOT NULL,
+                common_mistakes TEXT NOT NULL,
+                make_easier TEXT NOT NULL,
+                make_harder TEXT NOT NULL,
+                knee_safe INTEGER NOT NULL,
+                knee_warning TEXT NOT NULL
+            )
+            """.trimIndent()
+        )
+    }
+
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
-        // Future migrations handled cleanly without dropping user data
+        if (oldVersion < 2) {
+            createExerciseGuidesTable(db)
+        }
     }
 
     private fun seedDefaults(db: SQLiteDatabase) {
@@ -473,8 +501,65 @@ class FourWinsDbHelper(context: Context) : SQLiteOpenHelper(context, DB_NAME, nu
         writableDatabase.insertWithOnConflict("weight_logs", null, cv, SQLiteDatabase.CONFLICT_REPLACE)
     }
 
+    fun getSavedExerciseGuides(): List<DarebeeExerciseDetail> {
+        val list = mutableListOf<DarebeeExerciseDetail>()
+        readableDatabase.rawQuery(
+            "SELECT slug, title, url, thumb_url, youtube_embed, youtube_watch, instructions, steps_sep, works_muscles, breathing, common_mistakes, make_easier, make_harder, knee_safe, knee_warning FROM saved_exercise_guides ORDER BY title ASC",
+            null
+        ).use { c ->
+            while (c.moveToNext()) {
+                val steps = c.getString(7).split("\u001E").filter { it.isNotBlank() }
+                list.add(
+                    DarebeeExerciseDetail(
+                        slug = c.getString(0),
+                        title = c.getString(1),
+                        url = c.getString(2),
+                        thumbUrl = c.getString(3),
+                        youtubeEmbedUrl = c.getString(4),
+                        youtubeWatchUrl = c.getString(5),
+                        instructions = c.getString(6),
+                        steps = steps,
+                        worksMuscles = c.getString(8),
+                        breathing = c.getString(9),
+                        commonMistakes = c.getString(10),
+                        makeEasier = c.getString(11),
+                        makeHarder = c.getString(12),
+                        kneeSafe = c.getInt(13) == 1,
+                        kneeWarning = c.getString(14)
+                    )
+                )
+            }
+        }
+        return list
+    }
+
+    fun upsertSavedExerciseGuide(detail: DarebeeExerciseDetail) {
+        val cv = ContentValues().apply {
+            put("slug", detail.slug)
+            put("title", detail.title)
+            put("url", detail.url)
+            put("thumb_url", detail.thumbUrl)
+            put("youtube_embed", detail.youtubeEmbedUrl)
+            put("youtube_watch", detail.youtubeWatchUrl)
+            put("instructions", detail.instructions)
+            put("steps_sep", detail.steps.joinToString("\u001E"))
+            put("works_muscles", detail.worksMuscles)
+            put("breathing", detail.breathing)
+            put("common_mistakes", detail.commonMistakes)
+            put("make_easier", detail.makeEasier)
+            put("make_harder", detail.makeHarder)
+            put("knee_safe", if (detail.kneeSafe) 1 else 0)
+            put("knee_warning", detail.kneeWarning)
+        }
+        writableDatabase.insertWithOnConflict("saved_exercise_guides", null, cv, SQLiteDatabase.CONFLICT_REPLACE)
+    }
+
+    fun deleteSavedExerciseGuide(slug: String) {
+        writableDatabase.delete("saved_exercise_guides", "slug = ?", arrayOf(slug))
+    }
+
     companion object {
         private const val DB_NAME = "four_wins_tactical.db"
-        private const val DB_VERSION = 1
+        private const val DB_VERSION = 2
     }
 }

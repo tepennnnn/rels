@@ -22,13 +22,17 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Bolt
 import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.ExpandLess
+import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material.icons.rounded.FitnessCenter
 import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.PlayCircle
 import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -48,7 +52,9 @@ import androidx.compose.ui.unit.sp
 import com.tepen.fourwins.MainViewModel
 import com.tepen.fourwins.data.PreloadedCatalog
 import com.tepen.fourwins.model.Challenge30Day
+import com.tepen.fourwins.model.WorkoutExercise
 import com.tepen.fourwins.model.WorkoutProgram
+import com.tepen.fourwins.ui.components.ExerciseHowToDialog
 import com.tepen.fourwins.ui.components.KneeSafetyPill
 import com.tepen.fourwins.ui.components.TacticalCard
 import com.tepen.fourwins.ui.components.pillarColor
@@ -63,6 +69,8 @@ fun TrainScreen(
     val challenges by vm.challenges.collectAsState()
     val workoutLogs by vm.workoutLogs.collectAsState()
     var expandedChallengeId by remember { mutableStateOf<String?>(challenges.firstOrNull()?.id) }
+    var expandedProgramId by remember { mutableStateOf<String?>(null) }
+    var selectedHowToExercise by remember { mutableStateOf<WorkoutExercise?>(null) }
 
     val tabs = listOf("5-DAY SPLIT", "EXPRESS", "30-DAY CHALLENGES")
 
@@ -129,6 +137,11 @@ fun TrainScreen(
                     ProgramCard(
                         program = program,
                         completedCount = doneCount,
+                        expanded = expandedProgramId == program.id,
+                        onToggleExpand = {
+                            expandedProgramId = if (expandedProgramId == program.id) null else program.id
+                        },
+                        onInspectExercise = { selectedHowToExercise = it },
                         onStart = { onStartWorkout(program) }
                     )
                 }
@@ -139,6 +152,11 @@ fun TrainScreen(
                     ProgramCard(
                         program = program,
                         completedCount = doneCount,
+                        expanded = expandedProgramId == program.id,
+                        onToggleExpand = {
+                            expandedProgramId = if (expandedProgramId == program.id) null else program.id
+                        },
+                        onInspectExercise = { selectedHowToExercise = it },
                         onStart = { onStartWorkout(program) }
                     )
                 }
@@ -159,12 +177,23 @@ fun TrainScreen(
 
         item { Spacer(Modifier.height(16.dp)) }
     }
+
+    if (selectedHowToExercise != null) {
+        ExerciseHowToDialog(
+            exercise = selectedHowToExercise!!,
+            onSpeakSteps = { txt -> vm.coach.speak(txt, true) },
+            onDismiss = { selectedHowToExercise = null }
+        )
+    }
 }
 
 @Composable
 private fun ProgramCard(
     program: WorkoutProgram,
     completedCount: Int,
+    expanded: Boolean,
+    onToggleExpand: () -> Unit,
+    onInspectExercise: (WorkoutExercise) -> Unit,
     onStart: () -> Unit
 ) {
     TacticalCard {
@@ -212,13 +241,85 @@ private fun ProgramCard(
                 Text("${program.exercises.size} exercises", fontSize = 12.sp, color = TacticalColors.TextPrimary)
             }
         }
-        Spacer(Modifier.height(6.dp))
-        Text(
-            text = program.exercises.joinToString(" • ") { it.name },
-            fontSize = 11.sp,
-            color = TacticalColors.TextMuted,
-            maxLines = 2
-        )
+
+        Spacer(Modifier.height(8.dp))
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(8.dp))
+                .background(TacticalColors.AmoledBlack)
+                .border(1.dp, TacticalColors.BorderHairline, RoundedCornerShape(8.dp))
+                .clickable(onClick = onToggleExpand)
+                .padding(horizontal = 10.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = if (expanded) "HIDE EXERCISES & HOW-TO GUIDES" else "VIEW EXERCISES & FORM HOW-TO (${program.exercises.size})",
+                fontSize = 10.sp,
+                fontFamily = FontFamily.Monospace,
+                fontWeight = FontWeight.Bold,
+                color = TacticalColors.MentalCyan
+            )
+            Icon(
+                if (expanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
+                null,
+                tint = TacticalColors.MentalCyan,
+                modifier = Modifier.size(18.dp)
+            )
+        }
+
+        if (expanded) {
+            Spacer(Modifier.height(8.dp))
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                program.exercises.forEachIndexed { idx, ex ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(TacticalColors.AmoledBlack)
+                            .border(1.dp, TacticalColors.BorderHairline, RoundedCornerShape(8.dp))
+                            .clickable { onInspectExercise(ex) }
+                            .padding(horizontal = 10.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "${idx + 1}. ${ex.name}",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = TacticalColors.TextPrimary
+                            )
+                            Text(
+                                text = "${ex.sets} × ${ex.repsOrSeconds}",
+                                fontSize = 11.sp,
+                                color = TacticalColors.TextSecondary
+                            )
+                        }
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(TacticalColors.MentalCyan.copy(alpha = 0.14f))
+                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                        ) {
+                            Icon(Icons.Rounded.PlayCircle, null, tint = TacticalColors.MentalCyan, modifier = Modifier.size(14.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text(
+                                text = "HOW-TO",
+                                fontSize = 10.sp,
+                                fontFamily = FontFamily.Monospace,
+                                fontWeight = FontWeight.Bold,
+                                color = TacticalColors.MentalCyan
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
         Spacer(Modifier.height(10.dp))
         Button(
             onClick = onStart,

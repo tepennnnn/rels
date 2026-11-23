@@ -2,12 +2,15 @@ package com.tepen.fourwins.network
 
 import android.content.Context
 import com.tepen.fourwins.domain.FitnessCalculations
+import com.tepen.fourwins.model.DarebeeExerciseDetail
+import com.tepen.fourwins.model.DarebeeExerciseLibraryItem
 import com.tepen.fourwins.model.DarebeeRemoteItem
 import com.tepen.fourwins.model.SavedDarebeeWorkout
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import org.json.JSONArray
 import org.jsoup.Jsoup
 import java.io.File
 import java.io.FileOutputStream
@@ -154,6 +157,145 @@ object DarebeeScraper {
                 savedAtMillis = System.currentTimeMillis()
             )
         }
+    }
+
+    suspend fun fetchExerciseLibrary(): Result<List<DarebeeExerciseLibraryItem>> =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val html = fetchHtml("https://darebee.com/library.html")
+                parseExerciseLibraryHtml(html)
+            }
+        }
+
+    fun parseExerciseLibraryHtml(html: String): List<DarebeeExerciseLibraryItem> {
+        val marker = "var items ="
+        val startIdx = html.indexOf(marker)
+        if (startIdx < 0) return emptyList()
+        val arrStart = html.indexOf('[', startIdx)
+        if (arrStart < 0) return emptyList()
+
+        // Find matching closing bracket of JSON array
+        var depth = 0
+        var inStr = false
+        var escape = false
+        var arrEnd = -1
+        for (i in arrStart until html.length) {
+            val ch = html[i]
+            if (escape) {
+                escape = false
+                continue
+            }
+            if (ch == '\\' && inStr) {
+                escape = true
+                continue
+            }
+            if (ch == '"') {
+                inStr = !inStr
+                continue
+            }
+            if (!inStr) {
+                if (ch == '[') depth++
+                else if (ch == ']') {
+                    depth--
+                    if (depth == 0) {
+                        arrEnd = i
+                        break
+                    }
+                }
+            }
+        }
+        if (arrEnd <= arrStart) return emptyList()
+
+        val jsonArr = JSONArray(html.substring(arrStart, arrEnd + 1))
+        val result = ArrayList<DarebeeExerciseLibraryItem>(jsonArr.length())
+        for (i in 0 until jsonArr.length()) {
+            val obj = jsonArr.getJSONObject(i)
+            val title = obj.optString("t").trim()
+            val relUrl = obj.optString("u").trim()
+            val slug = obj.optString("a").trim()
+            if (title.isBlank() || relUrl.isBlank()) continue
+            val safety = FitnessCalculations.analyzeKneeSafety(title)
+            result.add(
+                DarebeeExerciseLibraryItem(
+                    title = title,
+                    slug = slug,
+                    url = if (relUrl.startsWith("http")) relUrl else "https://darebee.com/$relUrl",
+                    thumbUrl = "https://darebee.com/images/library/$slug.jpg",
+                    type = obj.optString("ty", "strength"),
+                    focus = obj.optString("f", "full-body"),
+                    difficulty = obj.optString("d", "normal"),
+                    kneeSafe = safety.isKneeSafe
+                )
+            )
+        }
+        return result
+    }
+
+    suspend fun fetchExerciseDetail(item: DarebeeExerciseLibraryItem): Result<DarebeeExerciseDetail> =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val html = fetchHtml(item.url)
+                parseExerciseDetailHtml(html, item)
+            }
+        }
+
+    fun parseExerciseDetailHtml(html: String, item: DarebeeExerciseLibraryItem): DarebeeExerciseDetail {
+        val doc = Jsoup.parse(html, "https://darebee.com/")
+        val iframeSrc = doc.selectFirst(".exercise-video iframe, iframe[src*=youtube]")?.attr("src").orEmpty()
+        val cleanEmbed = if (iframeSrc.isNotBlank()) {
+            iframeSrc.substringBefore("?") + "?rel=0&showinfo=0"
+        } else ""
+        val videoId = cleanEmbed.substringAfter("/embed/", "").substringBefore("?")
+        val watchUrl = if (videoId.isNotBlank()) "https://www.youtube.com/watch?v=$videoId" else item.url
+
+        var works = ""
+        var breathing = ""
+        var commonMistakes = ""
+        var makeEasier = ""
+        var makeHarder = ""
+        val instructionParts = mutableListOf<String>()
+
+        val paragraphs = doc.select("article p, .com-content-article__body p, .item-page p")
+        for (p in paragraphs) {
+            val txt = p.text().trim()
+            if (txt.isBlank()) continue
+            if (txt.contains("donate", ignoreCase = true) || txt.contains("consider donating", ignoreCase = true)) continue
+            when {
+                txt.startsWith("Works:", ignoreCase = true) -> works = txt.removePrefix("Works:").trim()
+                txt.startsWith("Breathing:", ignoreCase = true) -> breathing = txt.removePrefix("Breathing:").trim()
+                txt.startsWith("Common Mistakes:", ignoreCase = true) -> commonMistakes = txt.removePrefix("Common Mistakes:").trim()
+                txt.startsWith("Make Easier:", ignoreCase = true) -> makeEasier = txt.removePrefix("Make Easier:").trim()
+                txt.startsWith("Make Harder:", ignoreCase = true) -> makeHarder = txt.removePrefix("Make Harder:").trim()
+                txt.length > 20 -> instructionParts.add(txt)
+            }
+        }
+
+        val fullInstr = instructionParts.joinToString(" ")
+        val steps = fullInstr
+            .split(Regex("(?<=[.!?])\\s+"))
+            .map { it.trim() }
+            .filter { it.length > 10 }
+            .ifEmpty { listOf(fullInstr.ifBlank { "Follow the video demonstration carefully with controlled tempo." }) }
+
+        val safety = FitnessCalculations.analyzeKneeSafety("${item.title} $fullInstr")
+
+        return DarebeeExerciseDetail(
+            slug = item.slug,
+            title = item.title,
+            url = item.url,
+            thumbUrl = item.thumbUrl,
+            youtubeEmbedUrl = cleanEmbed,
+            youtubeWatchUrl = watchUrl,
+            instructions = fullInstr,
+            steps = steps,
+            worksMuscles = works,
+            breathing = breathing,
+            commonMistakes = commonMistakes,
+            makeEasier = makeEasier,
+            makeHarder = makeHarder,
+            kneeSafe = safety.isKneeSafe,
+            kneeWarning = safety.warningMessage
+        )
     }
 
     private fun fetchHtml(url: String): String {

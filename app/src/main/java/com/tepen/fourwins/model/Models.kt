@@ -89,6 +89,28 @@ data class UserProfile(
     val availableEquipment: Set<Equipment> = Equipment.entries.toSet()
 )
 
+enum class ExerciseMotionType {
+    WALK_INCLINE,
+    ROWING,
+    BENCH_PRESS,
+    SHOULDER_PRESS,
+    CHEST_FLY,
+    TRICEP_EXT,
+    LAT_PULLDOWN,
+    BENT_ROW,
+    BICEP_CURL,
+    DEAD_BUG,
+    PLANK,
+    CRUNCH_CORE,
+    GLUTE_BRIDGE,
+    ROMANIAN_DEADLIFT,
+    LEG_PRESS_SHALLOW,
+    CALF_RAISE,
+    STANDING_CORE,
+    SHADOW_BOXING,
+    MOBILITY_BREATH
+}
+
 data class WorkoutExercise(
     val id: String,
     val name: String,
@@ -101,7 +123,12 @@ data class WorkoutExercise(
     val formCue: String,
     val kneeSafetyNote: String,
     val kneeSwapName: String? = null,
-    val kneeSwapCue: String? = null
+    val kneeSwapCue: String? = null,
+    val motionType: ExerciseMotionType = ExerciseMotionType.MOBILITY_BREATH,
+    val steps: List<String> = emptyList(),
+    val breathingCue: String = "Exhale on exertion, inhale smoothly on the return.",
+    val commonMistakes: String = "Rushing reps or holding breath.",
+    val videoQuery: String = name
 )
 
 data class WorkoutProgram(
@@ -191,4 +218,33 @@ data class RecompMetrics(
     val targetKcal: Int,
     val proteinGrams: Int,
     val stepsOrCardioTarget: String
+)
+
+data class DarebeeExerciseLibraryItem(
+    val title: String,
+    val slug: String,
+    val url: String,
+    val thumbUrl: String,
+    val type: String,
+    val focus: String,
+    val difficulty: String,
+    val kneeSafe: Boolean
+)
+
+data class DarebeeExerciseDetail(
+    val slug: String,
+    val title: String,
+    val url: String,
+    val thumbUrl: String,
+    val youtubeEmbedUrl: String,
+    val youtubeWatchUrl: String,
+    val instructions: String,
+    val steps: List<String>,
+    val worksMuscles: String,
+    val breathing: String,
+    val commonMistakes: String,
+    val makeEasier: String,
+    val makeHarder: String,
+    val kneeSafe: Boolean,
+    val kneeWarning: String
 )

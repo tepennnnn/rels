@@ -1,5 +1,6 @@
 package com.tepen.fourwins
 
+import com.tepen.fourwins.model.DarebeeExerciseLibraryItem
 import com.tepen.fourwins.model.DarebeeRemoteItem
 import com.tepen.fourwins.network.DarebeeScraper
 import org.junit.Assert.assertEquals
@@ -57,5 +58,58 @@ class DarebeeScraperTest {
         assertEquals("Upperbody", parsed.focus)
         assertEquals("level 3 of 5", parsed.difficulty)
         assertEquals("https://darebee.com/images/workouts/counter-workout.jpg", parsed.posterUrl)
+    }
+
+    @Test
+    fun `parseExerciseLibraryHtml parses Darebee video catalog`() {
+        val html = """
+            <script>
+            var items = [{"t":"Bird Dog","u":"exercises/bird-dog.html","a":"bird-dog","ty":"strength","f":"full-body","d":"easy"},{"t":"Jump Squats","u":"exercises/jump-squats.html","a":"jump-squats","ty":"cardio","f":"lower-body","d":"hard"}];
+            </script>
+        """.trimIndent()
+
+        val list = DarebeeScraper.parseExerciseLibraryHtml(html)
+        assertEquals(2, list.size)
+        assertEquals("Bird Dog", list[0].title)
+        assertEquals("https://darebee.com/exercises/bird-dog.html", list[0].url)
+        assertTrue(list[0].kneeSafe)
+        assertFalse(list[1].kneeSafe)
+    }
+
+    @Test
+    fun `parseExerciseDetailHtml extracts YouTube embed and step-by-step cues`() {
+        val html = """
+            <html><body>
+              <div class="exercise-video"><iframe src="https://www.youtube.com/embed/iGa9FINcjO4?controls=1"></iframe></div>
+              <article>
+                <p>Start on all fours with hands under shoulders. Extend one arm straight out and opposite leg straight back. Pause, then return smoothly.</p>
+                <p><strong>Works:</strong> abs, lower back, glutes</p>
+                <p><strong>Breathing:</strong> Exhale as you extend, inhale as you return.</p>
+                <p><strong>Common Mistakes:</strong> Letting hips tilt or arching lower back.</p>
+                <p><strong>Make Easier:</strong> Extend only one leg at a time.</p>
+                <p><strong>Make Harder:</strong> Add a 3-count hold at full extension.</p>
+              </article>
+            </body></html>
+        """.trimIndent()
+
+        val item = DarebeeExerciseLibraryItem(
+            title = "Bird Dog",
+            slug = "bird-dog",
+            url = "https://darebee.com/exercises/bird-dog.html",
+            thumbUrl = "https://darebee.com/images/library/bird-dog.jpg",
+            type = "strength",
+            focus = "full-body",
+            difficulty = "easy",
+            kneeSafe = true
+        )
+        val detail = DarebeeScraper.parseExerciseDetailHtml(html, item)
+        assertEquals("https://www.youtube.com/embed/iGa9FINcjO4?rel=0&showinfo=0", detail.youtubeEmbedUrl)
+        assertEquals("https://www.youtube.com/watch?v=iGa9FINcjO4", detail.youtubeWatchUrl)
+        assertTrue(detail.steps.size >= 2)
+        assertEquals("abs, lower back, glutes", detail.worksMuscles)
+        assertTrue(detail.breathing.contains("Exhale"))
+        assertTrue(detail.commonMistakes.contains("hips tilt"))
+        assertTrue(detail.makeEasier.contains("one leg"))
+        assertTrue(detail.makeHarder.contains("3-count"))
     }
 }

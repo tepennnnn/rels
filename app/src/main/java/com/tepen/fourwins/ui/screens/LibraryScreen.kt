@@ -33,7 +33,9 @@ import androidx.compose.material.icons.rounded.CloudDownload
 import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.material.icons.rounded.OpenInBrowser
 import androidx.compose.material.icons.rounded.PictureAsPdf
+import androidx.compose.material.icons.rounded.PlayCircle
 import androidx.compose.material.icons.rounded.Refresh
+import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.UploadFile
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -44,6 +46,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -75,6 +78,7 @@ import com.tepen.fourwins.data.PreloadedCatalog
 import com.tepen.fourwins.model.PdfLibraryItem
 import com.tepen.fourwins.model.SavedDarebeeWorkout
 import com.tepen.fourwins.network.DarebeeScraper
+import com.tepen.fourwins.ui.components.DarebeeVideoDetailDialog
 import com.tepen.fourwins.ui.components.KneeSafetyPill
 import com.tepen.fourwins.ui.components.TacticalCard
 import com.tepen.fourwins.ui.theme.TacticalColors
@@ -95,9 +99,18 @@ fun LibraryScreen(
     val remoteError by vm.remoteError.collectAsState()
     val selectedFeed by vm.selectedFeed.collectAsState()
 
+    val exerciseLibrary by vm.exerciseLibrary.collectAsState()
+    val exerciseLibLoading by vm.exerciseLibraryLoading.collectAsState()
+    val exerciseLibError by vm.exerciseLibraryError.collectAsState()
+    val savedGuides by vm.savedExerciseGuides.collectAsState()
+    val activeExerciseDetail by vm.activeExerciseDetail.collectAsState()
+    val exerciseDetailLoading by vm.exerciseDetailLoading.collectAsState()
+
     var kneeSafeOnlyFilter by remember { mutableStateOf(true) }
     var onlinePage by remember { mutableIntStateOf(0) }
     var previewPoster by remember { mutableStateOf<SavedDarebeeWorkout?>(null) }
+    var exerciseSearch by remember { mutableStateOf("") }
+    var selectedFocusFilter by remember { mutableStateOf("all") }
 
     val pdfPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
@@ -110,6 +123,8 @@ fun LibraryScreen(
     LaunchedEffect(subTab) {
         if (subTab == 1 && remoteItems.isEmpty() && !remoteLoading) {
             vm.loadDarebeeFeed(selectedFeed, 0)
+        } else if (subTab == 2 && exerciseLibrary.isEmpty() && !exerciseLibLoading) {
+            vm.loadExerciseLibrary()
         }
     }
 
@@ -128,7 +143,7 @@ fun LibraryScreen(
                     color = TacticalColors.TextPrimary
                 )
                 Text(
-                    text = "Offline PDF books & posters + live Darebee browser",
+                    text = "Offline PDFs, Video How-To Guides & live Darebee browser",
                     fontSize = 12.sp,
                     color = TacticalColors.TextSecondary
                 )
@@ -146,7 +161,7 @@ fun LibraryScreen(
                     .padding(4.dp),
                 horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                listOf("MY OFFLINE PDFs", "BROWSE DAREBEE ONLINE").forEachIndexed { idx, label ->
+                listOf("OFFLINE PDFs", "ONLINE WORKOUTS", "VIDEO HOW-TOs").forEachIndexed { idx, label ->
                     val active = subTab == idx
                     Box(
                         modifier = Modifier
@@ -159,7 +174,7 @@ fun LibraryScreen(
                     ) {
                         Text(
                             text = label,
-                            fontSize = 10.sp,
+                            fontSize = 9.sp,
                             fontWeight = FontWeight.Bold,
                             fontFamily = FontFamily.Monospace,
                             color = if (active) TacticalColors.AmoledBlack else TacticalColors.TextSecondary
@@ -329,7 +344,7 @@ fun LibraryScreen(
                     }
                 }
             }
-        } else {
+        } else if (subTab == 1) {
             // Online Darebee Browser
             item {
                 Row(
@@ -479,9 +494,166 @@ fun LibraryScreen(
                     }
                 }
             }
+        } else {
+            // VIDEO HOW-TOs: Saved Offline Guides + Darebee Video Exercise Library
+            if (savedGuides.isNotEmpty()) {
+                item {
+                    Text(
+                        text = "SAVED OFFLINE FORM GUIDES (${savedGuides.size})",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = TacticalColors.FinancialEmerald
+                    )
+                }
+                items(savedGuides, key = { "saved_${it.slug}" }) { guide ->
+                    TacticalCard(
+                        borderColor = TacticalColors.FinancialEmerald.copy(alpha = 0.4f),
+                        onClick = { vm.openSavedExerciseGuide(guide) }
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Rounded.PlayCircle, null, tint = TacticalColors.FinancialEmerald, modifier = Modifier.size(30.dp))
+                            Spacer(Modifier.width(10.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(guide.title, style = MaterialTheme.typography.titleMedium, color = TacticalColors.TextPrimary)
+                                Text(
+                                    text = "${guide.steps.size} steps • Offline Ready",
+                                    fontSize = 11.sp,
+                                    color = TacticalColors.TextSecondary
+                                )
+                            }
+                            IconButton(onClick = { vm.deleteExerciseGuide(guide.slug) }) {
+                                Icon(Icons.Rounded.DeleteOutline, "Remove", tint = TacticalColors.TextMuted)
+                            }
+                        }
+                    }
+                }
+            }
+
+            item {
+                OutlinedTextField(
+                    value = exerciseSearch,
+                    onValueChange = { exerciseSearch = it },
+                    placeholder = { Text("Search Darebee exercise (e.g., plank, row, bird dog)") },
+                    leadingIcon = { Icon(Icons.Rounded.Search, null, tint = TacticalColors.MentalCyan) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
+            item {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    listOf("all", "abs", "upper-body", "lower-body", "full-body", "stretching").forEach { focus ->
+                        FilterChip(
+                            selected = selectedFocusFilter == focus,
+                            onClick = { selectedFocusFilter = focus },
+                            label = { Text(focus.uppercase(), fontSize = 10.sp) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = TacticalColors.MentalCyan,
+                                selectedLabelColor = TacticalColors.AmoledBlack
+                            )
+                        )
+                    }
+                }
+            }
+
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    FilterChip(
+                        selected = kneeSafeOnlyFilter,
+                        onClick = { kneeSafeOnlyFilter = !kneeSafeOnlyFilter },
+                        label = { Text("Knee-Safe Only", fontSize = 11.sp) },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = TacticalColors.KneeSafeGreen.copy(alpha = 0.22f),
+                            selectedLabelColor = TacticalColors.KneeSafeGreen
+                        )
+                    )
+                    IconButton(onClick = { vm.loadExerciseLibrary(forceRefresh = true) }) {
+                        Icon(Icons.Rounded.Refresh, "Reload", tint = TacticalColors.MentalCyan)
+                    }
+                }
+            }
+
+            if (exerciseLibLoading || exerciseDetailLoading) {
+                item {
+                    Box(
+                        modifier = Modifier.fillMaxWidth().padding(24.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(color = TacticalColors.MentalCyan)
+                    }
+                }
+            }
+
+            if (exerciseLibError != null) {
+                item {
+                    TacticalCard(borderColor = TacticalColors.CautionAmber) {
+                        Text(exerciseLibError!!, color = TacticalColors.CautionAmber, fontSize = 12.sp)
+                    }
+                }
+            }
+
+            val filteredExercises = exerciseLibrary.filter { ex ->
+                val matchesSearch = exerciseSearch.isBlank() || ex.title.contains(exerciseSearch, ignoreCase = true)
+                val matchesFocus = selectedFocusFilter == "all" || ex.focus.equals(selectedFocusFilter, ignoreCase = true)
+                val matchesKnee = !kneeSafeOnlyFilter || ex.kneeSafe
+                matchesSearch && matchesFocus && matchesKnee
+            }.take(60)
+
+            items(filteredExercises, key = { it.slug }) { ex ->
+                TacticalCard(onClick = { vm.openDarebeeExercise(ex) }) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Image(
+                            painter = rememberAsyncImagePainter(ex.thumbUrl),
+                            contentDescription = ex.title,
+                            modifier = Modifier
+                                .size(56.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(TacticalColors.AmoledBlack),
+                            contentScale = ContentScale.Crop
+                        )
+                        Spacer(Modifier.width(12.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(ex.title, style = MaterialTheme.typography.titleMedium, color = TacticalColors.TextPrimary)
+                            Text(
+                                text = "${ex.focus.uppercase()} • ${ex.type.uppercase()} • ${ex.difficulty.uppercase()}",
+                                fontSize = 10.sp,
+                                fontFamily = FontFamily.Monospace,
+                                color = TacticalColors.TextSecondary
+                            )
+                        }
+                        Icon(Icons.Rounded.PlayCircle, "Watch How-To", tint = TacticalColors.PhysicalCrimson, modifier = Modifier.size(28.dp))
+                    }
+                }
+            }
         }
 
         item { Spacer(Modifier.height(16.dp)) }
+    }
+
+    if (activeExerciseDetail != null) {
+        val detail = activeExerciseDetail!!
+        val isSaved = savedGuides.any { it.slug == detail.slug }
+        DarebeeVideoDetailDialog(
+            detail = detail,
+            isSavedOffline = isSaved,
+            onSaveOffline = { vm.saveExerciseGuideOffline(detail) },
+            onSpeakSteps = { txt -> vm.coach.speak(txt, true) },
+            onDismiss = { vm.closeDarebeeExercise() }
+        )
     }
 
     // Full-screen Zoomable Saved Poster Viewer

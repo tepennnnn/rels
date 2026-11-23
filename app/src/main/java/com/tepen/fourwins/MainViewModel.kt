@@ -7,6 +7,8 @@ import androidx.lifecycle.viewModelScope
 import com.tepen.fourwins.audio.WorkoutCoach
 import com.tepen.fourwins.data.PreloadedCatalog
 import com.tepen.fourwins.domain.FitnessCalculations
+import com.tepen.fourwins.model.DarebeeExerciseDetail
+import com.tepen.fourwins.model.DarebeeExerciseLibraryItem
 import com.tepen.fourwins.model.DarebeeRemoteItem
 import com.tepen.fourwins.model.KneeComfort
 import com.tepen.fourwins.model.PdfLibraryItem
@@ -41,6 +43,22 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val pdfLibrary = repo.pdfLibrary
     val savedDarebee = repo.savedDarebee
     val weightLogs = repo.weightLogs
+    val savedExerciseGuides = repo.savedExerciseGuides
+
+    private val _exerciseLibrary = MutableStateFlow<List<DarebeeExerciseLibraryItem>>(emptyList())
+    val exerciseLibrary: StateFlow<List<DarebeeExerciseLibraryItem>> = _exerciseLibrary.asStateFlow()
+
+    private val _exerciseLibraryLoading = MutableStateFlow(false)
+    val exerciseLibraryLoading: StateFlow<Boolean> = _exerciseLibraryLoading.asStateFlow()
+
+    private val _exerciseLibraryError = MutableStateFlow<String?>(null)
+    val exerciseLibraryError: StateFlow<String?> = _exerciseLibraryError.asStateFlow()
+
+    private val _activeExerciseDetail = MutableStateFlow<DarebeeExerciseDetail?>(null)
+    val activeExerciseDetail: StateFlow<DarebeeExerciseDetail?> = _activeExerciseDetail.asStateFlow()
+
+    private val _exerciseDetailLoading = MutableStateFlow(false)
+    val exerciseDetailLoading: StateFlow<Boolean> = _exerciseDetailLoading.asStateFlow()
 
     val recompMetrics = profile.map { FitnessCalculations.computeRecompMetrics(it) }
         .stateIn(viewModelScope, SharingStarted.Eagerly, FitnessCalculations.computeRecompMetrics(profile.value))
@@ -190,6 +208,56 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun deleteSavedDarebee(item: SavedDarebeeWorkout) {
         repo.deleteSavedDarebee(item)
+    }
+
+    fun loadExerciseLibrary(forceRefresh: Boolean = false) {
+        if (!forceRefresh && _exerciseLibrary.value.isNotEmpty()) return
+        viewModelScope.launch {
+            _exerciseLibraryLoading.value = true
+            _exerciseLibraryError.value = null
+            DarebeeScraper.fetchExerciseLibrary()
+                .onSuccess { _exerciseLibrary.value = it }
+                .onFailure { err ->
+                    _exerciseLibraryError.value = "Offline or Darebee unreachable (${err.message}). Your saved form guides & animated demos work offline."
+                }
+            _exerciseLibraryLoading.value = false
+        }
+    }
+
+    fun openDarebeeExercise(item: DarebeeExerciseLibraryItem) {
+        // Check offline saved guide first so it loads instantaneously even offline!
+        val offlineMatch = savedExerciseGuides.value.find { it.slug == item.slug }
+        if (offlineMatch != null) {
+            _activeExerciseDetail.value = offlineMatch
+            return
+        }
+        viewModelScope.launch {
+            _exerciseDetailLoading.value = true
+            DarebeeScraper.fetchExerciseDetail(item)
+                .onSuccess { _activeExerciseDetail.value = it }
+                .onFailure { err ->
+                    _statusBanner.value = "Could not load video guide (${err.message})."
+                }
+            _exerciseDetailLoading.value = false
+        }
+    }
+
+    fun openSavedExerciseGuide(detail: DarebeeExerciseDetail) {
+        _activeExerciseDetail.value = detail
+    }
+
+    fun closeDarebeeExercise() {
+        _activeExerciseDetail.value = null
+    }
+
+    fun saveExerciseGuideOffline(detail: DarebeeExerciseDetail) {
+        repo.saveExerciseGuide(detail)
+        _statusBanner.value = "Saved '${detail.title}' step-by-step guide offline!"
+    }
+
+    fun deleteExerciseGuide(slug: String) {
+        repo.deleteExerciseGuide(slug)
+        _statusBanner.value = "Removed saved guide."
     }
 
     fun logWeight(weightKg: Float, waistCm: Float? = null) {

@@ -8,6 +8,7 @@ import android.provider.OpenableColumns
 import com.tepen.fourwins.domain.FitnessCalculations
 import com.tepen.fourwins.model.Challenge30Day
 import com.tepen.fourwins.model.DailyWinEntry
+import com.tepen.fourwins.model.DarebeeExerciseDetail
 import com.tepen.fourwins.model.KneeComfort
 import com.tepen.fourwins.model.PdfLibraryItem
 import com.tepen.fourwins.model.SavedDarebeeWorkout
@@ -59,6 +60,9 @@ class AppRepository(private val context: Context) {
 
     private val _weightLogs = MutableStateFlow(db.getWeightLogs())
     val weightLogs: StateFlow<List<WeightEntry>> = _weightLogs.asStateFlow()
+
+    private val _savedExerciseGuides = MutableStateFlow(db.getSavedExerciseGuides())
+    val savedExerciseGuides: StateFlow<List<DarebeeExerciseDetail>> = _savedExerciseGuides.asStateFlow()
 
     private fun computeStats(): WinStatsSummary {
         return FitnessCalculations.computeWinStats(
@@ -215,6 +219,16 @@ class AppRepository(private val context: Context) {
         runCatching { File(item.localImagePath).delete() }
         db.deleteSavedDarebee(item.id)
         _savedDarebee.value = db.getSavedDarebee()
+    }
+
+    fun saveExerciseGuide(detail: DarebeeExerciseDetail) {
+        db.upsertSavedExerciseGuide(detail)
+        _savedExerciseGuides.value = db.getSavedExerciseGuides()
+    }
+
+    fun deleteExerciseGuide(slug: String) {
+        db.deleteSavedExerciseGuide(slug)
+        _savedExerciseGuides.value = db.getSavedExerciseGuides()
     }
 
     fun logWeight(weightKg: Float, waistCm: Float? = null, dateIso: String = LocalDate.now().toString()) {
