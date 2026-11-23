@@ -1,0 +1,29 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Top-Left Quadrant: Physical (Crimson) -->
+    <path
+        android:fillColor="#FF3B4E"
+        android:pathData="M51,51 L51,26 A25,25 0 0,0 26,51 Z" />
+    <!-- Top-Right Quadrant: Financial (Emerald) -->
+    <path
+        android:fillColor="#00E676"
+        android:pathData="M57,51 L82,51 A25,25 0 0,0 57,26 Z" />
+    <!-- Bottom-Left Quadrant: Mental (Cyan) -->
+    <path
+        android:fillColor="#00E5FF"
+        android:pathData="M51,57 L26,57 A25,25 0 0,0 51,82 Z" />
+    <!-- Bottom-Right Quadrant: Spiritual (Amber) -->
+    <path
+        android:fillColor="#FFB300"
+        android:pathData="M57,57 L57,82 A25,25 0 0,0 82,57 Z" />
+    <!-- Center Core -->
+    <path
+        android:fillColor="#080A0F"
+        android:pathData="M54,42 A12,12 0 1,1 53.99,42 Z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M50,54 L53,57 L59,49 L61,51 L53,61 L48,56 Z" />
+</vector>

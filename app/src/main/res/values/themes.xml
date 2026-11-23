@@ -1,0 +1,7 @@
+<resources>
+    <style name="Theme.FourWins" parent="android:Theme.Material.NoActionBar">
+        <item name="android:statusBarColor">#050608</item>
+        <item name="android:navigationBarColor">#0A0C10</item>
+        <item name="android:windowBackground">#050608</item>
+    </style>
+</resources>
