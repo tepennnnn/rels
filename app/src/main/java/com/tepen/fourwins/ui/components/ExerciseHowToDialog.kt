@@ -70,6 +70,7 @@ import coil.disk.DiskCache
 import coil.request.ImageRequest
 import com.tepen.fourwins.model.DarebeeExerciseDetail
 import com.tepen.fourwins.model.WorkoutExercise
+import com.tepen.fourwins.ui.theme.OceanGradientBackground
 import com.tepen.fourwins.ui.theme.TacticalColors
 
 @Composable
@@ -150,16 +151,13 @@ fun ExerciseHowToDialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
-        Surface(
-            modifier = Modifier.fillMaxSize(),
-            color = TacticalColors.AmoledBlack
-        ) {
+        OceanGradientBackground {
             Column(modifier = Modifier.fillMaxSize()) {
                 // Clean Top App Bar
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(TacticalColors.SurfaceDark)
+                        .background(TacticalColors.OceanDeep.copy(alpha = 0.65f))
                         .padding(horizontal = 12.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -341,15 +339,12 @@ fun DarebeeVideoDetailDialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
-        Surface(
-            modifier = Modifier.fillMaxSize(),
-            color = TacticalColors.AmoledBlack
-        ) {
+        OceanGradientBackground {
             Column(modifier = Modifier.fillMaxSize()) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(TacticalColors.SurfaceDark)
+                        .background(TacticalColors.OceanDeep.copy(alpha = 0.65f))
                         .padding(horizontal = 12.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {

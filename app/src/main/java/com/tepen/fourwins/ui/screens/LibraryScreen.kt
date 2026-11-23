@@ -78,6 +78,7 @@ import com.tepen.fourwins.model.SavedDarebeeWorkout
 import com.tepen.fourwins.network.DarebeeScraper
 import com.tepen.fourwins.ui.components.DarebeeVideoDetailDialog
 import com.tepen.fourwins.ui.components.KneeSafetyPill
+import com.tepen.fourwins.ui.components.TemplateUnderlineTabs
 import com.tepen.fourwins.ui.theme.TacticalColors
 import java.io.File
 
@@ -127,7 +128,7 @@ fun LibraryScreen(
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .background(TacticalColors.AmoledBlack),
+            .background(Color.Transparent),
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
@@ -138,36 +139,13 @@ fun LibraryScreen(
             }
         }
 
-        // Spacious 2-Tab Mode Switcher
+        // Template Underline Tabs
         item {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(TacticalColors.CardDark)
-                    .padding(4.dp),
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                listOf("Offline Vault", "Discover Darebee").forEachIndexed { idx, label ->
-                    val active = mainMode == idx
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(if (active) TacticalColors.MentalCyan else Color.Transparent)
-                            .clickable { mainMode = idx }
-                            .padding(vertical = 11.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = label,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = if (active) TacticalColors.AmoledBlack else TacticalColors.TextSecondary
-                        )
-                    }
-                }
-            }
+            TemplateUnderlineTabs(
+                tabs = listOf("Offline Vault", "Discover Darebee"),
+                selectedIndex = mainMode,
+                onSelect = { mainMode = it }
+            )
         }
 
         if (mainMode == 0) {

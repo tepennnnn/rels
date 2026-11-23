@@ -199,13 +199,13 @@ fun WorkoutPlayerScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(TacticalColors.AmoledBlack)
+            .background(Color.Transparent)
     ) {
         // Top Header + Progress
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(TacticalColors.SurfaceDark)
+                .background(TacticalColors.OceanDeep.copy(alpha = 0.65f))
                 .padding(horizontal = 12.dp, vertical = 10.dp)
         ) {
             Row(

@@ -10,6 +10,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -36,9 +37,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -52,6 +55,7 @@ import com.tepen.fourwins.ui.screens.TrainScreen
 import com.tepen.fourwins.ui.screens.WinsScreen
 import com.tepen.fourwins.ui.screens.WorkoutPlayerScreen
 import com.tepen.fourwins.ui.theme.FourWinsTheme
+import com.tepen.fourwins.ui.theme.OceanGradientBackground
 import com.tepen.fourwins.ui.theme.TacticalColors
 
 class MainActivity : ComponentActivity() {
@@ -80,7 +84,7 @@ private fun FourWinsRoot(vm: MainViewModel = viewModel()) {
 
     val notifPermLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
-    ) { /* Permission result handled silently */ }
+    ) { }
 
     LaunchedEffect(Unit) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -102,75 +106,83 @@ private fun FourWinsRoot(vm: MainViewModel = viewModel()) {
         }
     }
 
-    when {
-        activeWorkout != null -> {
-            BackHandler { activeWorkout = null }
-            WorkoutPlayerScreen(
-                vm = vm,
-                program = activeWorkout!!,
-                onClose = { activeWorkout = null }
-            )
-        }
-        activePdf != null -> {
-            BackHandler { activePdf = null }
-            PdfViewerScreen(
-                vm = vm,
-                pdfItem = activePdf!!,
-                onClose = { activePdf = null }
-            )
-        }
-        else -> {
-            val tabs = listOf(
-                NavTab("Wins", Icons.Rounded.EmojiEvents),
-                NavTab("Train", Icons.Rounded.FitnessCenter),
-                NavTab("Darebee", Icons.AutoMirrored.Rounded.MenuBook),
-                NavTab("Stats", Icons.Rounded.BarChart),
-                NavTab("Profile", Icons.Rounded.Person)
-            )
-            Scaffold(
-                containerColor = TacticalColors.AmoledBlack,
-                snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
-                bottomBar = {
-                    NavigationBar(
-                        containerColor = TacticalColors.SurfaceDark,
-                        contentColor = TacticalColors.TextPrimary
-                    ) {
-                        tabs.forEachIndexed { idx, tab ->
-                            val selected = activeTab == idx
-                            NavigationBarItem(
-                                selected = selected,
-                                onClick = { activeTab = idx },
-                                icon = { Icon(tab.icon, contentDescription = tab.label) },
-                                label = {
-                                    Text(
-                                        text = tab.label,
-                                        fontSize = 11.sp,
-                                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
+    OceanGradientBackground {
+        when {
+            activeWorkout != null -> {
+                BackHandler { activeWorkout = null }
+                WorkoutPlayerScreen(
+                    vm = vm,
+                    program = activeWorkout!!,
+                    onClose = { activeWorkout = null }
+                )
+            }
+            activePdf != null -> {
+                BackHandler { activePdf = null }
+                PdfViewerScreen(
+                    vm = vm,
+                    pdfItem = activePdf!!,
+                    onClose = { activePdf = null }
+                )
+            }
+            else -> {
+                val tabs = listOf(
+                    NavTab("Wins", Icons.Rounded.EmojiEvents),
+                    NavTab("Train", Icons.Rounded.FitnessCenter),
+                    NavTab("Darebee", Icons.AutoMirrored.Rounded.MenuBook),
+                    NavTab("Stats", Icons.Rounded.BarChart),
+                    NavTab("Profile", Icons.Rounded.Person)
+                )
+                Scaffold(
+                    containerColor = Color.Transparent,
+                    snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+                    bottomBar = {
+                        NavigationBar(
+                            containerColor = TacticalColors.OceanDeep.copy(alpha = 0.92f),
+                            tonalElevation = 0.dp
+                        ) {
+                            tabs.forEachIndexed { idx, tab ->
+                                val selected = activeTab == idx
+                                NavigationBarItem(
+                                    selected = selected,
+                                    onClick = { activeTab = idx },
+                                    icon = { Icon(tab.icon, contentDescription = tab.label) },
+                                    label = {
+                                        Text(
+                                            text = tab.label,
+                                            fontSize = 11.sp,
+                                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
+                                        )
+                                    },
+                                    colors = NavigationBarItemDefaults.colors(
+                                        selectedIconColor = TacticalColors.MentalCyan,
+                                        selectedTextColor = TacticalColors.MentalCyan,
+                                        indicatorColor = TacticalColors.MentalCyan.copy(alpha = 0.16f),
+                                        unselectedIconColor = TacticalColors.TextMuted,
+                                        unselectedTextColor = TacticalColors.TextMuted
                                     )
-                                },
-                                colors = NavigationBarItemDefaults.colors(
-                                    selectedIconColor = TacticalColors.PhysicalCrimson,
-                                    selectedTextColor = TacticalColors.PhysicalCrimson,
-                                    indicatorColor = TacticalColors.PhysicalCrimson.copy(alpha = 0.16f),
-                                    unselectedIconColor = TacticalColors.TextMuted,
-                                    unselectedTextColor = TacticalColors.TextMuted
                                 )
-                            )
+                            }
                         }
                     }
-                }
-            ) { innerPadding ->
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(innerPadding)
-                ) {
-                    when (activeTab) {
-                        0 -> WinsScreen(vm = vm, onStartWorkout = { activeWorkout = it })
-                        1 -> TrainScreen(vm = vm, onStartWorkout = { activeWorkout = it })
-                        2 -> LibraryScreen(vm = vm, onOpenPdf = { activePdf = it })
-                        3 -> StatsScreen(vm = vm)
-                        4 -> ProfileScreen(vm = vm)
+                ) { innerPadding ->
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(innerPadding)
+                            .background(Color.Transparent)
+                    ) {
+                        when (activeTab) {
+                            0 -> WinsScreen(
+                                vm = vm,
+                                onStartWorkout = { activeWorkout = it },
+                                onOpenDarebee = { activeTab = 2 },
+                                onOpenProfile = { activeTab = 4 }
+                            )
+                            1 -> TrainScreen(vm = vm, onStartWorkout = { activeWorkout = it })
+                            2 -> LibraryScreen(vm = vm, onOpenPdf = { activePdf = it })
+                            3 -> StatsScreen(vm = vm)
+                            4 -> ProfileScreen(vm = vm)
+                        }
                     }
                 }
             }

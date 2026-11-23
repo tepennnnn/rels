@@ -57,6 +57,7 @@ import com.tepen.fourwins.model.WorkoutProgram
 import com.tepen.fourwins.ui.components.ExerciseHowToDialog
 import com.tepen.fourwins.ui.components.KneeSafetyPill
 import com.tepen.fourwins.ui.components.TacticalCard
+import com.tepen.fourwins.ui.components.TemplateUnderlineTabs
 import com.tepen.fourwins.ui.components.pillarColor
 import com.tepen.fourwins.ui.theme.TacticalColors
 
@@ -72,62 +73,37 @@ fun TrainScreen(
     var expandedProgramId by remember { mutableStateOf<String?>(null) }
     var selectedHowToExercise by remember { mutableStateOf<WorkoutExercise?>(null) }
 
-    val tabs = listOf("5-DAY SPLIT", "EXPRESS", "30-DAY CHALLENGES")
+    val tabs = listOf("5-Day Split", "Express", "30-Day Challenges")
 
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .background(TacticalColors.AmoledBlack),
+            .background(Color.Transparent),
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item {
             Column {
                 Text(
-                    text = "TRAINING PROTOCOL",
+                    text = "Training Protocol",
                     style = MaterialTheme.typography.headlineMedium,
                     color = TacticalColors.TextPrimary
                 )
                 Text(
                     text = "Knee-protected minimal gym + Darebee routines (45–60 min)",
-                    fontSize = 12.sp,
+                    fontSize = 13.sp,
                     color = TacticalColors.TextSecondary
                 )
             }
         }
 
-        // Sub-tab switcher
+        // Clean Underline Tab Switcher (matching template's Credit Card | Debit Card)
         item {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(TacticalColors.CardDark)
-                    .border(1.dp, TacticalColors.BorderHairline, RoundedCornerShape(12.dp))
-                    .padding(4.dp),
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                tabs.forEachIndexed { idx, label ->
-                    val active = selectedTab == idx
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .clip(RoundedCornerShape(9.dp))
-                            .background(if (active) TacticalColors.PhysicalCrimson else Color.Transparent)
-                            .clickable { selectedTab = idx }
-                            .padding(vertical = 9.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = label,
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            fontFamily = FontFamily.Monospace,
-                            color = if (active) Color.White else TacticalColors.TextSecondary
-                        )
-                    }
-                }
-            }
+            TemplateUnderlineTabs(
+                tabs = tabs,
+                selectedIndex = selectedTab,
+                onSelect = { selectedTab = it }
+            )
         }
 
         when (selectedTab) {

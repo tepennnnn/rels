@@ -60,14 +60,14 @@ fun ProfileScreen(vm: MainViewModel) {
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .background(TacticalColors.AmoledBlack),
+            .background(Color.Transparent),
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item {
             Column {
-                Text("PERSONAL PROTOCOL", style = MaterialTheme.typography.headlineMedium, color = TacticalColors.TextPrimary)
-                Text("Tailored biometrics, knee protection, audio & reminders", fontSize = 12.sp, color = TacticalColors.TextSecondary)
+                Text("Personal Protocol", style = MaterialTheme.typography.headlineMedium, color = TacticalColors.TextPrimary)
+                Text("Tailored biometrics, knee protection, audio & reminders", fontSize = 13.sp, color = TacticalColors.TextSecondary)
             }
         }
 

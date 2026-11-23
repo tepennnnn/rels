@@ -116,14 +116,14 @@ fun StatsScreen(vm: MainViewModel) {
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .background(TacticalColors.AmoledBlack),
+            .background(Color.Transparent),
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item {
             Column {
-                Text("TACTICAL STATS", style = MaterialTheme.typography.headlineMedium, color = TacticalColors.TextPrimary)
-                Text("Win streaks, recomp progress & knee comfort logs", fontSize = 12.sp, color = TacticalColors.TextSecondary)
+                Text("Progress & Stats", style = MaterialTheme.typography.headlineMedium, color = TacticalColors.TextPrimary)
+                Text("Win streaks, recomp progress & knee comfort logs", fontSize = 13.sp, color = TacticalColors.TextSecondary)
             }
         }
 
